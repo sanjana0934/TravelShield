@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv
+pillow
+opencv-python
+pandas
+scikit-learn
+tensorflow
+python-multipart
+requests
