@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+     
 
   # HTTP & networking
   http: ^1.2.1
@@ -49,3 +50,4 @@ flutter:
     - assets/images/alleppey.jpg
     - assets/images/wayanad.jpg
     - assets/images/profile.jpg
+    - assets/images/boat.png  # ← add this

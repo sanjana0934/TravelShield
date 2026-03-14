@@ -6,14 +6,113 @@
 ## Project Structure
 ```
 TravelShield/
-├── backend/          # FastAPI Python backend
+├── .gitignore
+├── read.md
+│
+├── backend/
 │   ├── main.py
+│   ├── requirements.txt
+│   ├── database.db              ← auto-created on first run (gitignored)
+│   ├── .env                     ← never pushed (gitignored)
+│   │
 │   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py            ← API keys from .env
+│   │   └── database.py          ← SQLite setup
+│   │
 │   ├── routers/
-│   ├── models/       # ML models (shared via Drive — see below)
-│   └── .env          # API keys (never pushed — create locally)
-└── travel_app/       # Flutter frontend
-```
+│   │   ├── __init__.py
+│   │   ├── auth.py              ← /signup /login /profile
+│   │   ├── qr.py                ← /check_qr /detect_qr_image
+│   │   ├── currency.py          ← /detect_currency
+│   │   ├── clothing.py          ← /clothing_suggestion/{city}
+│   │   ├── chatbot.py           ← /chat
+│   │   ├── alerts.py            ← /districts /district-news
+│   │   ├── trips.py             ← /trips CRUD
+│   │   └── itinerary.py         ← /itinerary/generate
+│   │
+│   ├── models/                  ← gitignored, share via Drive
+│   │   ├── qr_model.pkl
+│   │   └── currency_cnn_model.h5
+│   │
+│   └── uploads/                 ← gitignored, auto-created
+│
+└── travel_app/
+    ├── pubspec.yaml
+    ├── pubspec.lock
+    ├── main.dart
+    │
+    ├── assets/
+    │   ├── images/
+    │   │   ├── kathakali.png
+    │   │   ├── munnar.jpg
+    │   │   ├── kochi.jpg
+    │   │   ├── alleppey.jpg
+    │   │   ├── wayanad.jpg
+    │   │   └── profile.jpg
+    │   │
+    │   └── videos/              ← gitignored, share via Drive
+    │       ├── video1.mp4
+    │       ├── video2.mp4
+    │       ├── video3.mp4
+    │       ├── video4.mp4
+    │       ├── video5.mp4
+    │       └── video6.mp4
+    │
+    └── lib/
+        ├── main.dart
+        │
+        ├── data/
+        │   └── destinations.dart
+        │
+        ├── drawer/
+        │   └── app_drawer.dart
+        │
+        ├── models/
+        │   ├── chat_message.dart
+        │   ├── destination_model.dart
+        │   ├── trip_model.dart
+        │   └── user_models.dart
+        │
+        ├── services/
+        │   ├── api_service.dart       ← auth API calls
+        │   ├── chatbot_service.dart   ← /chat
+        │   ├── news_service.dart      ← /district-news
+        │   ├── trip_api_service.dart  ← /trips + /itinerary
+        │   └── user_session.dart      ← stores logged in user
+        │
+        ├── screens/
+        │   ├── about/
+        │   │   └── about_page.dart
+        │   ├── alerts/
+        │   │   └── district_alert_screen.dart
+        │   ├── chatbot/
+        │   │   └── chatbot_screen.dart
+        │   ├── home/
+        │   │   ├── home_page.dart
+        │   │   ├── main_navigation.dart
+        │   │   └── tools/
+        │   │       ├── clothing_page.dart
+        │   │       ├── currency_page.dart
+        │   │       ├── qr_scanner_page.dart
+        │   │       └── translator_page.dart
+        │   ├── login/
+        │   │   └── login_page.dart
+        │   ├── profile/
+        │   │   └── profile_page.dart
+        │   ├── settings/
+        │   │   └── settings_page.dart
+        │   ├── sos/
+        │   │   └── sos_page.dart
+        │   └── trip_planner/
+        │       ├── create_trip_screen.dart
+        │       ├── itinerary_screen.dart
+        │       └── trip_planner_screen.dart
+        │
+        └── widgets/
+            ├── alert_card.dart
+            ├── chat_bubble.dart
+            └── news_tile.dart
 
 ---
 
