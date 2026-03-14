@@ -8,8 +8,6 @@ import 'screens/home/tools/clothing_page.dart';
 import 'screens/settings/settings_page.dart';
 import 'screens/about/about_page.dart';
 import 'screens/trip_planner/trip_planner_screen.dart';
-import 'screens/translator/translator_page.dart';
-import 'screens/over_pricing/price_checker_page.dart';
 
 void main() {
   runApp(const KeralaApp());
