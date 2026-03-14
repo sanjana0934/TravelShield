@@ -25,7 +25,7 @@ from core.database import init_db
 
 # ── Feature routers ───────────────────────────────────────────────────────────
 from routers import auth, qr, currency, clothing, chatbot, alerts, trips, itinerary
-
+from routers import assistant
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
@@ -70,3 +70,4 @@ app.include_router(chatbot.router)
 app.include_router(alerts.router)
 app.include_router(trips.router)
 app.include_router(itinerary.router)
+app.include_router(assistant.router)
