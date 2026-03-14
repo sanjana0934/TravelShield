@@ -10,7 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-     
+  geolocator: ^10.1.0
+  url_launcher: ^6.2.0
 
   # HTTP & networking
   http: ^1.2.1
@@ -27,7 +28,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
   percent_indicator: ^4.2.3
-  url_launcher: ^6.0.0
 
   # Video
   video_player: ^2.8.2
@@ -41,7 +41,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/videos//video1.mp4
+    - assets/videos/video1.mp4
     - assets/videos/video2.mp4
     - assets/videos/video3.mp4
     - assets/videos/video4.mp4
@@ -53,4 +53,4 @@ flutter:
     - assets/images/alleppey.jpg
     - assets/images/wayanad.jpg
     - assets/images/profile.jpg
-    - assets/images/boat.png  # ← add this
+    - assets/images/boat.png

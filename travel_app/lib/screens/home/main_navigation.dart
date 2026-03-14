@@ -17,11 +17,7 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int index = 0;
 
-  final pages = [
-    const HomePage(),
-    const SOSPage(),
-    const ProfilePage(),
-  ];
+  final pages = [const HomePage(), SOSPage(), const ProfilePage()];
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +89,8 @@ class _NavItem extends StatelessWidget {
     final color = isAlert
         ? const Color(0xFFE53935)
         : selected
-            ? _primary
-            : const Color(0xFF8FA89B);
+        ? _primary
+        : const Color(0xFF8FA89B);
 
     return GestureDetector(
       onTap: onTap,
@@ -104,9 +100,7 @@ class _NavItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? (isAlert
-                  ? const Color(0xFFFFEBEE)
-                  : const Color(0xFFE8F5EE))
+              ? (isAlert ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5EE))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),

@@ -9,6 +9,7 @@ import 'screens/home/tools/price_checker_page.dart';
 import 'screens/settings/settings_page.dart';
 import 'screens/about/about_page.dart';
 import 'screens/trip_planner/trip_planner_screen.dart';
+import 'screens/sos/sos_page.dart';
 
 void main() {
   runApp(const KeralaApp());
@@ -32,6 +33,7 @@ class KeralaApp extends StatelessWidget {
         "/settings": (context) => const SettingsPage(),
         "/about": (context) => const AboutPage(),
         "/trip": (context) => const TripPlannerScreen(),
+        "/sos": (context) => const SOSPage(),
         "/price": (context) => const PriceCheckerPage(),
       },
     );
