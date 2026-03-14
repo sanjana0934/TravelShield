@@ -3,7 +3,7 @@ import '../../models/trip_model.dart';
 import '../../services/trip_api_service.dart';
 
 class CreateTripScreen extends StatefulWidget {
-  final TripModel? existingTrip; // for editing
+  final TripModel? existingTrip;
   const CreateTripScreen({super.key, this.existingTrip});
 
   @override
@@ -25,12 +25,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   String _destination = '';
 
   final List<String> _purposes = [
-    'leisure',
-    'business',
-    'medical',
-    'pilgrimage',
-    'wildlife',
-    'adventure',
+    'leisure', 'business', 'medical', 'pilgrimage', 'wildlife', 'adventure',
   ];
 
   List<String> _districts = [];
@@ -39,6 +34,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   @override
   void initState() {
     super.initState();
+    _loadDistricts(); // ← loads districts on screen open
     if (widget.existingTrip != null) {
       final t = widget.existingTrip!;
       _titleCtrl.text = t.title;
@@ -58,13 +54,33 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     super.dispose();
   }
 
+  // ── Load districts from backend ───────────────────────────────────────────
+
+  Future<void> _loadDistricts() async {
+    try {
+      final list = await _api.getDestinations();
+      setState(() { _districts = list; _loadingDistricts = false; });
+    } catch (_) {
+      setState(() {
+        _districts = [
+          'Thiruvananthapuram', 'Kollam', 'Pathanamthitta', 'Alappuzha',
+          'Kottayam', 'Idukki', 'Ernakulam', 'Thrissur', 'Palakkad',
+          'Malappuram', 'Kozhikode', 'Wayanad', 'Kannur', 'Kasaragod',
+          'Munnar', 'Alleppey', 'Kochi', 'Kovalam', 'Varkala', 'Thekkady',
+        ];
+        _loadingDistricts = false;
+      });
+    }
+  }
+
+  // ── Date picker ───────────────────────────────────────────────────────────
+
   Future<void> _pickDate(bool isStart) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: isStart
           ? (_startDate ?? DateTime.now())
-          : (_endDate ??
-              (_startDate ?? DateTime.now()).add(const Duration(days: 3))),
+          : (_endDate ?? (_startDate ?? DateTime.now()).add(const Duration(days: 3))),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
       builder: (ctx, child) => Theme(
@@ -78,9 +94,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
       setState(() {
         if (isStart) {
           _startDate = picked;
-          if (_endDate != null && _endDate!.isBefore(picked)) {
-            _endDate = null;
-          }
+          if (_endDate != null && _endDate!.isBefore(picked)) _endDate = null;
         } else {
           _endDate = picked;
         }
@@ -92,6 +106,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     if (date == null) return 'Select date';
     return '${date.day}/${date.month}/${date.year}';
   }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -142,6 +158,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     );
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existingTrip != null;
@@ -160,7 +178,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Trip Title ──
+
+              // ── Trip Title ────────────────────────────────────────────────
               _buildCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,19 +188,15 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _titleCtrl,
-                      decoration: _inputDeco(
-                        'e.g. Munnar Monsoon Escape',
-                        Icons.title_rounded,
-                      ),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Title is required' : null,
+                      decoration: _inputDeco('e.g. Munnar Monsoon Escape', Icons.title_rounded),
+                      validator: (v) => v == null || v.isEmpty ? 'Title is required' : null,
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
 
-              // ── Destination ──
+              // ── Destination ───────────────────────────────────────────────
               _buildCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,8 +210,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                               SizedBox(
                                 width: 18, height: 18,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xFF1B5E20)),
+                                    strokeWidth: 2, color: Color(0xFF1B5E20)),
                               ),
                               SizedBox(width: 10),
                               Text('Loading destinations...',
@@ -205,28 +219,20 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                           )
                         : DropdownButtonFormField<String>(
                             value: _destination.isEmpty ? null : _destination,
-                            decoration: _inputDeco(
-                                'Select district / place',
-                                Icons.place_rounded),
+                            decoration: _inputDeco('Select district / place', Icons.place_rounded),
                             isExpanded: true,
                             items: _districts
-                                .map((d) => DropdownMenuItem(
-                                      value: d,
-                                      child: Text(d),
-                                    ))
+                                .map((d) => DropdownMenuItem(value: d, child: Text(d)))
                                 .toList(),
-                            onChanged: (v) =>
-                                setState(() => _destination = v ?? ''),
-                            validator: (v) => v == null
-                                ? 'Please select a destination'
-                                : null,
+                            onChanged: (v) => setState(() => _destination = v ?? ''),
+                            validator: (v) => v == null ? 'Please select a destination' : null,
                           ),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
 
-              // ── Dates ──
+              // ── Dates ─────────────────────────────────────────────────────
               _buildCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,41 +241,25 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(
-                          child: _dateTile(
-                            label: 'Start Date',
-                            value: _startDate,
-                            onTap: () => _pickDate(true),
-                          ),
-                        ),
+                        Expanded(child: _dateTile(label: 'Start Date', value: _startDate, onTap: () => _pickDate(true))),
                         const SizedBox(width: 12),
-                        Expanded(
-                          child: _dateTile(
-                            label: 'End Date',
-                            value: _endDate,
-                            onTap: () => _pickDate(false),
-                          ),
-                        ),
+                        Expanded(child: _dateTile(label: 'End Date', value: _endDate, onTap: () => _pickDate(false))),
                       ],
                     ),
                     if (_startDate != null && _endDate != null) ...[
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1B5E20).withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(children: [
-                          const Icon(Icons.info_outline,
-                              size: 16, color: Color(0xFF1B5E20)),
+                          const Icon(Icons.info_outline, size: 16, color: Color(0xFF1B5E20)),
                           const SizedBox(width: 6),
                           Text(
                             '${_endDate!.difference(_startDate!).inDays + 1} day trip',
-                            style: const TextStyle(
-                                color: Color(0xFF1B5E20),
-                                fontWeight: FontWeight.w700),
+                            style: const TextStyle(color: Color(0xFF1B5E20), fontWeight: FontWeight.w700),
                           ),
                         ]),
                       ),
@@ -279,7 +269,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               const SizedBox(height: 12),
 
-              // ── Purpose ──
+              // ── Purpose ───────────────────────────────────────────────────
               _buildCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,8 +285,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                           label: Text(
                             p[0].toUpperCase() + p.substring(1),
                             style: TextStyle(
-                              color:
-                                  sel ? Colors.white : const Color(0xFF1B5E20),
+                              color: sel ? Colors.white : const Color(0xFF1B5E20),
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
@@ -305,9 +294,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                           selectedColor: const Color(0xFF1B5E20),
                           backgroundColor: const Color(0xFF1B5E20).withOpacity(0.08),
                           side: BorderSide(
-                            color: sel
-                                ? const Color(0xFF1B5E20)
-                                : const Color(0xFF1B5E20).withOpacity(0.3),
+                            color: sel ? const Color(0xFF1B5E20) : const Color(0xFF1B5E20).withOpacity(0.3),
                           ),
                           onSelected: (_) => setState(() => _purpose = p),
                         );
@@ -318,7 +305,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               const SizedBox(height: 12),
 
-              // ── Travelers ──
+              // ── Travelers ─────────────────────────────────────────────────
               _buildCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,33 +315,21 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     Row(children: [
                       _counterBtn(
                         icon: Icons.remove,
-                        onTap: _travelers > 1
-                            ? () => setState(() => _travelers--)
-                            : null,
+                        onTap: _travelers > 1 ? () => setState(() => _travelers--) : null,
                       ),
                       const SizedBox(width: 20),
-                      Text(
-                        '$_travelers',
-                        style: const TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.w800),
-                      ),
+                      Text('$_travelers', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                       const SizedBox(width: 20),
-                      _counterBtn(
-                        icon: Icons.add,
-                        onTap: () => setState(() => _travelers++),
-                      ),
+                      _counterBtn(icon: Icons.add, onTap: () => setState(() => _travelers++)),
                       const SizedBox(width: 12),
-                      Text(
-                        'person${_travelers > 1 ? 's' : ''}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
+                      Text('person${_travelers > 1 ? 's' : ''}', style: const TextStyle(color: Colors.grey)),
                     ]),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
 
-              // ── Budget & Notes ──
+              // ── Budget & Notes ────────────────────────────────────────────
               _buildCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,18 +339,14 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     TextFormField(
                       initialValue: _budget?.toString(),
                       keyboardType: TextInputType.number,
-                      decoration: _inputDeco(
-                          'Total budget in ₹ (e.g. 25000)',
-                          Icons.currency_rupee),
+                      decoration: _inputDeco('Total budget in ₹ (e.g. 25000)', Icons.currency_rupee),
                       onChanged: (v) => _budget = double.tryParse(v),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       initialValue: _notes,
                       maxLines: 3,
-                      decoration: _inputDeco(
-                          'Special requirements, preferences...',
-                          Icons.note_outlined),
+                      decoration: _inputDeco('Special requirements, preferences...', Icons.note_outlined),
                       onChanged: (v) => _notes = v,
                     ),
                   ],
@@ -383,7 +354,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               const SizedBox(height: 24),
 
-              // ── Submit ──
+              // ── Submit ────────────────────────────────────────────────────
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -391,21 +362,17 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1B5E20),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: _loading ? null : _submit,
                   child: _loading
                       ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                          height: 22, width: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : Text(
                           isEdit ? 'Update Trip' : 'Save Trip',
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                 ),
               ),
@@ -417,6 +384,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     );
   }
 
+  // ── Helper Widgets ────────────────────────────────────────────────────────
+
   Widget _buildCard({required Widget child}) {
     return Container(
       width: double.infinity,
@@ -425,54 +394,36 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          )
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))
         ],
       ),
       child: child,
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        color: Color(0xFF1B5E20),
-        letterSpacing: 0.8,
-      ),
-    );
-  }
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11, fontWeight: FontWeight.w800,
+          color: Color(0xFF1B5E20), letterSpacing: 0.8,
+        ),
+      );
 
-  InputDecoration _inputDeco(String hint, IconData icon) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-      prefixIcon: Icon(icon, color: const Color(0xFF1B5E20), size: 20),
-      filled: true,
-      fillColor: const Color(0xFFF5F7F5),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide:
-            const BorderSide(color: Color(0xFF1B5E20), width: 1.5),
-      ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    );
-  }
+  InputDecoration _inputDeco(String hint, IconData icon) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+        prefixIcon: Icon(icon, color: const Color(0xFF1B5E20), size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF5F7F5),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF1B5E20), width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      );
 
-  Widget _dateTile(
-      {required String label,
-      required DateTime? value,
-      required VoidCallback onTap}) {
+  Widget _dateTile({required String label, required DateTime? value, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -482,36 +433,23 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           color: const Color(0xFFF5F7F5),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: value != null
-                ? const Color(0xFF1B5E20).withOpacity(0.5)
-                : Colors.transparent,
+            color: value != null ? const Color(0xFF1B5E20).withOpacity(0.5) : Colors.transparent,
           ),
         ),
         child: Row(children: [
-          const Icon(Icons.calendar_today_outlined,
-              size: 16, color: Color(0xFF1B5E20)),
+          const Icon(Icons.calendar_today_outlined, size: 16, color: Color(0xFF1B5E20)),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w600)),
-                Text(
-                  _formatDate(value),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: value != null
-                        ? const Color(0xFF1B5E20)
-                        : Colors.grey,
-                  ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
+              Text(
+                _formatDate(value),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: 13,
+                  color: value != null ? const Color(0xFF1B5E20) : Colors.grey,
                 ),
-              ],
-            ),
+              ),
+            ]),
           ),
         ]),
       ),
@@ -522,16 +460,12 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 36, height: 36,
         decoration: BoxDecoration(
-          color: onTap != null
-              ? const Color(0xFF1B5E20)
-              : Colors.grey.shade300,
+          color: onTap != null ? const Color(0xFF1B5E20) : Colors.grey.shade300,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon,
-            color: onTap != null ? Colors.white : Colors.grey, size: 18),
+        child: Icon(icon, color: onTap != null ? Colors.white : Colors.grey, size: 18),
       ),
     );
   }
