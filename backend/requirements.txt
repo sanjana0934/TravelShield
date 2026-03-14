@@ -9,3 +9,7 @@ scikit-learn
 tensorflow
 python-multipart
 requests
+SpeechRecognition
+sounddevice
+numpy
+scipy
