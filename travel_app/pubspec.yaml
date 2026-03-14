@@ -20,6 +20,9 @@ dependencies:
   google_mlkit_barcode_scanning: ^0.10.0
   image_picker: ^1.1.2
 
+  # Speech recognition
+  speech_to_text: ^6.6.0
+
   # UI
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
