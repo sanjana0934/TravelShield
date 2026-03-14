@@ -112,3 +112,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 travel_app/assets/videos/
+
+# Exception — Flutter dart models are NOT ignored
+!travel_app/lib/models/
+!travel_app/lib/models/*.dart
