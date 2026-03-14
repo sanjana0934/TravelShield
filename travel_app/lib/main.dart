@@ -8,8 +8,9 @@ import 'screens/home/tools/clothing_page.dart';
 import 'screens/settings/settings_page.dart';
 import 'screens/about/about_page.dart';
 import 'screens/trip_planner/trip_planner_screen.dart';
-import 'screens/translator/translator_page.dart';
-import 'screens/over_pricing/price_checker_page.dart';
+import 'screens/sos/sos_page.dart';
+// import 'screens/translator/translator_page.dart';
+// import 'screens/over_pricing/price_checker_page.dart';
 
 void main() {
   runApp(const KeralaApp());
@@ -32,7 +33,9 @@ class KeralaApp extends StatelessWidget {
         "/clothing": (context) => const ClothingPage(),
         "/settings": (context) => const SettingsPage(),
         "/about": (context) => const AboutPage(),
-        "/trip": (context) => const TripPlannerScreen(), // ← NEW
+        "/trip": (context) => const TripPlannerScreen(),
+        "/sos": (context) => const SOSPage(),
+        // "/price": (context) => const PriceCheckerPage(), // comment this out, file missing
       },
     );
   }
