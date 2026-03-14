@@ -1,9 +1,16 @@
-// lib/screens/chatbot/chatbot_screen.dart
-
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/chat_message_model.dart';
 import '../../services/chatbot_service.dart';
 import '../../widgets/chat_bubble.dart';
+
+// ── Tokens ────────────────────────────────────────────────────────────────────
+const _primary = Color(0xFF1A6B3C);
+const _accent  = Color(0xFF25A05B);
+const _white   = Colors.white;
+const _bg      = Color(0xFFF5F6F8);
+const _dark    = Color(0xFF0D1B12);
+const _light   = Color(0xFF9EB5A8);
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -119,36 +126,49 @@ class _ChatbotScreenState extends State<ChatbotScreen>
   }
 
   void _showLocationDialog() {
-    final locationController = TextEditingController(text: _userLocation ?? '');
-
+    final locationController =
+        TextEditingController(text: _userLocation ?? '');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
           children: [
-            Icon(Icons.location_on, color: Color(0xFF2E7D32)),
-            SizedBox(width: 8),
-            Text('Set Your Location',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1B5E20))),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF5F1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.location_on_rounded,
+                  color: _primary, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Set Location',
+              style: GoogleFonts.urbanist(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: _dark,
+              ),
+            ),
           ],
         ),
         content: TextField(
           controller: locationController,
+          style: GoogleFonts.urbanist(fontSize: 15, color: _dark),
           decoration: InputDecoration(
-            hintText: 'e.g. Fort Kochi, Munnar, Wayanad...',
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            hintText: 'e.g. Fort Kochi, Munnar...',
+            hintStyle: GoogleFonts.urbanist(color: _light),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12)),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFF2E7D32), width: 2),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primary, width: 2),
             ),
             prefixIcon:
-                const Icon(Icons.place_outlined, color: Color(0xFF2E7D32)),
+                const Icon(Icons.place_outlined, color: _primary),
           ),
         ),
         actions: [
@@ -157,23 +177,28 @@ class _ChatbotScreenState extends State<ChatbotScreen>
               setState(() => _userLocation = null);
               Navigator.pop(ctx);
             },
-            child: const Text('Clear', style: TextStyle(color: Colors.grey)),
+            child: Text('Clear',
+                style: GoogleFonts.urbanist(
+                    color: _light, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: _primary,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               setState(() {
-                _userLocation = locationController.text.trim().isEmpty
-                    ? null
-                    : locationController.text.trim();
+                _userLocation =
+                    locationController.text.trim().isEmpty
+                        ? null
+                        : locationController.text.trim();
               });
               Navigator.pop(ctx);
             },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
+            child: Text('Save',
+                style: GoogleFonts.urbanist(
+                    color: _white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -183,126 +208,153 @@ class _ChatbotScreenState extends State<ChatbotScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F8E9),
+      backgroundColor: _bg,
       appBar: _buildAppBar(),
       body: Column(
         children: [
           Expanded(child: _buildMessageList()),
           if (_isTyping) const TypingIndicator(),
-          _buildQuickSuggestionsRow(),
+          _buildQuickSuggestions(),
           _buildInputBar(),
         ],
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      elevation: 0,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1B5E20), Color(0xFF388E3C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
-      leading: const Padding(
-        padding: EdgeInsets.all(10),
-        child: CircleAvatar(
-          backgroundColor: Colors.white24,
-          child: Text('🛡️', style: TextStyle(fontSize: 18)),
-        ),
-      ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'TravelShield AI',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.3,
+  // ── App Bar ─────────────────────────────────────────────────────────────────
+
+  PreferredSizeWidget _buildAppBar() => AppBar(
+        backgroundColor: _white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        // ← Back button to return to dashboard
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF5F1),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: const Icon(Icons.arrow_back_rounded,
+                color: _primary, size: 20),
           ),
-          Text(
-            _userLocation != null
-                ? '📍 $_userLocation'
-                : 'Kerala Tourism Assistant',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(
-            _userLocation != null ? Icons.location_on : Icons.location_off,
-            color:
-                _userLocation != null ? Colors.greenAccent : Colors.white70,
-          ),
-          tooltip: 'Set location',
-          onPressed: _showLocationDialog,
+          onPressed: () => Navigator.pop(context),
         ),
-        const SizedBox(width: 4),
-      ],
-    );
-  }
+        title: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF5F1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Center(
+                child: Text('🛡️', style: TextStyle(fontSize: 18)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TravelShield AI',
+                  style: GoogleFonts.urbanist(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: _dark,
+                  ),
+                ),
+                Text(
+                  _userLocation != null
+                      ? '📍 $_userLocation'
+                      : 'Kerala Tourism Assistant',
+                  style: GoogleFonts.urbanist(
+                    fontSize: 11,
+                    color: _light,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: _userLocation != null
+                    ? const Color(0xFFEEF5F1)
+                    : const Color(0xFFF5F6F8),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _userLocation != null
+                    ? Icons.location_on_rounded
+                    : Icons.location_off_rounded,
+                color: _userLocation != null ? _accent : _light,
+                size: 18,
+              ),
+            ),
+            onPressed: _showLocationDialog,
+          ),
+          const SizedBox(width: 8),
+        ],
+      );
 
-  Widget _buildMessageList() {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: _messages.length,
-      itemBuilder: (context, index) {
-        return ChatBubble(message: _messages[index]);
-      },
-    );
-  }
+  // ── Message List ────────────────────────────────────────────────────────────
 
-  Widget _buildQuickSuggestionsRow() {
+  Widget _buildMessageList() => ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        itemCount: _messages.length,
+        itemBuilder: (_, i) => ChatBubble(message: _messages[i]),
+      );
+
+  // ── Quick Suggestions ───────────────────────────────────────────────────────
+
+  Widget _buildQuickSuggestions() {
     if (_messages.length > 1 && !_isTyping) return const SizedBox.shrink();
-
     return Container(
-      color: const Color(0xFFF1F8E9),
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      color: _bg,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: SizedBox(
-        height: 38,
+        height: 36,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: _quickSuggestions.length,
           separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (context, i) {
+          itemBuilder: (_, i) {
             final s = _quickSuggestions[i];
             return GestureDetector(
               onTap: () => _sendMessage(s['label']!),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: _white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF81C784)),
+                  border: Border.all(
+                      color: const Color(0xFFDDE8E2)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withOpacity(.05),
                       blurRadius: 4,
-                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(s['icon']!, style: const TextStyle(fontSize: 14)),
+                    Text(s['icon']!,
+                        style: const TextStyle(fontSize: 13)),
                     const SizedBox(width: 5),
                     Text(
                       s['label']!,
-                      style: const TextStyle(
+                      style: GoogleFonts.urbanist(
                         fontSize: 12,
-                        color: Color(0xFF2E7D32),
-                        fontWeight: FontWeight.w500,
+                        color: _primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -315,75 +367,62 @@ class _ChatbotScreenState extends State<ChatbotScreen>
     );
   }
 
-  Widget _buildInputBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-      color: const Color(0xFFF1F8E9),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+  // ── Input Bar ───────────────────────────────────────────────────────────────
+
+  Widget _buildInputBar() => Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+        color: _bg,
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _white,
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(.07),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _inputController,
+                  focusNode: _focusNode,
+                  maxLines: 4,
+                  minLines: 1,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: GoogleFonts.urbanist(
+                    fontSize: 15,
+                    color: _dark,
                   ),
-                ],
-              ),
-              child: TextField(
-                controller: _inputController,
-                focusNode: _focusNode,
-                maxLines: 4,
-                minLines: 1,
-                textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF1A1A1A),
-                  fontFamily: 'Georgia',
+                  decoration: InputDecoration(
+                    hintText: 'Ask about Kerala travel...',
+                    hintStyle: GoogleFonts.urbanist(
+                        color: _light, fontSize: 14),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 13),
+                  ),
+                  onSubmitted: _sendMessage,
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'Ask about Kerala travel…',
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                ),
-                onSubmitted: _sendMessage,
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => _sendMessage(_inputController.text),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1B5E20), Color(0xFF4CAF50)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () => _sendMessage(_inputController.text),
+              child: Container(
+                width: 48, height: 48,
+                decoration: const BoxDecoration(
+                  color: _primary,
+                  shape: BoxShape.circle,
                 ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4CAF50).withOpacity(0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                child: const Icon(Icons.send_rounded,
+                    color: _white, size: 20),
               ),
-              child: const Icon(Icons.send_rounded,
-                  color: Colors.white, size: 22),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 }

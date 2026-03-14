@@ -1,7 +1,8 @@
 """
-routers/auth.py  –  User authentication: signup, login, profile.
+routers/auth.py  -  User authentication: signup, login, profile.
 """
 
+import re
 from datetime import datetime
 from fastapi import APIRouter
 from core.database import get_db
@@ -9,14 +10,37 @@ from core.database import get_db
 router = APIRouter(tags=["Auth"])
 
 
+# -- Password validator -------------------------------------------------------
+
+def validate_password(password: str):
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+    if not re.search(r'[A-Z]', password):
+        return "Must include an uppercase letter."
+    if not re.search(r'[0-9]', password):
+        return "Must include a number."
+    if not re.search(r'[#@!$%^&*]', password):
+        return "Must include a special character (#@!$%^&*)."
+    return None
+
+
+# -- Signup -------------------------------------------------------------------
+
 @router.post("/signup")
 def signup(data: dict):
     try:
+        if not re.match(r'^[\w\.\+\-]+@[\w\-]+\.[a-zA-Z]{2,}$', data["email"]):
+            return {"status": "error", "message": "Please enter a valid email address."}
+
+        error = validate_password(data["password"])
+        if error:
+            return {"status": "error", "message": error}
+
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE email=?", (data["email"],))
+            cursor.execute("SELECT 1 FROM users WHERE email=?", (data["email"],))
             if cursor.fetchone():
-                return {"status": "error", "message": "User already exists"}
+                return {"status": "error", "message": "An account with this email already exists."}
             cursor.execute("""
             INSERT INTO users(
                 first_name, middle_name, last_name, gender, dob, phone,
@@ -37,6 +61,8 @@ def signup(data: dict):
         return {"status": "error", "message": str(e)}
 
 
+# -- Login --------------------------------------------------------------------
+
 @router.post("/login")
 def login(data: dict):
     try:
@@ -54,6 +80,8 @@ def login(data: dict):
         return {"status": "error", "message": str(e)}
 
 
+# -- Profile ------------------------------------------------------------------
+
 @router.get("/profile/{email}")
 def get_profile(email: str):
     try:
@@ -68,7 +96,7 @@ def get_profile(email: str):
         return {"status": "error", "message": str(e)}
 
 
-# ── Helper ────────────────────────────────────────────────────────────────────
+# -- Helper -------------------------------------------------------------------
 
 def _row_to_user(row):
     return {
