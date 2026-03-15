@@ -96,6 +96,27 @@ def get_profile(email: str):
         return {"status": "error", "message": str(e)}
 
 
+
+@router.patch("/profile/{email}")
+def update_profile(email: str, data: dict):
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE users 
+                SET phone=?, emergency_contact=?, address=?
+                WHERE email=?
+            """, (
+                data.get("phone"),
+                data.get("emergency_contact"),
+                data.get("address"),
+                email
+            ))
+            conn.commit()
+        return {"status": "success", "message": "Profile updated"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # -- Helper -------------------------------------------------------------------
 
 def _row_to_user(row):

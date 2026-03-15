@@ -27,6 +27,8 @@ from core.database import init_db
 from routers import auth, qr, currency, clothing, chatbot, alerts, trips, itinerary
 from routers import assistant
 from routers import sos
+from routers import otp
+
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
@@ -34,6 +36,9 @@ app = FastAPI(
     description="TravelShield AI – safety, chatbot, alerts, trip planning for Kerala tourism.",
     version="2.0.0",
 )
+
+
+app.include_router(otp.router)
 
 app.add_middleware(
     CORSMiddleware,

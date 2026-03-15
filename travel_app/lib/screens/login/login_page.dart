@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
+import 'otp_verification_page.dart';
 
 import '../../services/user_session.dart';
 import '../home/main_navigation.dart';
@@ -226,7 +227,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> login() async {
     setState(() => errorMessage = null);
     final response = await http.post(
-      Uri.parse("http://127.0.0.1:8000/login"),
+      Uri.parse("http://localhost:8000/login"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email.text, "password": password.text}),
     );
@@ -306,6 +307,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String    selectedNation = "India";
   DateTime? dob;
   String?   errorMessage;
+  bool      _loading       = false;
 
   Country selectedCountry    = kCountries.firstWhere((c) => c.name == "India");
   Country selectedEmgCountry = kCountries.firstWhere((c) => c.name == "India");
@@ -321,57 +323,119 @@ class _RegisterPageState extends State<RegisterPage> {
     password.addListener(() => setState(() {}));
   }
 
+  // ── Step 1: Validate then send OTP ────────────────────────────────────────
   Future<void> signup() async {
-    setState(() => errorMessage = null);
+    setState(() { errorMessage = null; _loading = true; });
 
+    // Validations
     if (first.text.isEmpty || last.text.isEmpty) {
-      setState(() => errorMessage = "Please enter your name.");
+      setState(() { errorMessage = "Please enter your name."; _loading = false; });
       return;
     }
     if (dob == null) {
-      setState(() => errorMessage = "Please select your date of birth.");
+      setState(() { errorMessage = "Please select your date of birth."; _loading = false; });
       return;
     }
     if (phone.text.isEmpty) {
-      setState(() => errorMessage = "Please enter your phone number.");
+      setState(() { errorMessage = "Please enter your phone number."; _loading = false; });
       return;
     }
     if (!RegExp(r'^[\w\.\+\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(email.text)) {
-      setState(() => errorMessage = "Please enter a valid email address.");
+      setState(() { errorMessage = "Please enter a valid email address."; _loading = false; });
       return;
     }
     if (!_hasLength || !_hasUpper || !_hasNumber || !_hasSpecial) {
-      setState(() => errorMessage = "Password does not meet all requirements.");
+      setState(() { errorMessage = "Password does not meet all requirements."; _loading = false; });
       return;
     }
     if (password.text != confirm.text) {
-      setState(() => errorMessage = "Passwords do not match.");
+      setState(() { errorMessage = "Passwords do not match."; _loading = false; });
       return;
     }
 
-    final response = await http.post(
-      Uri.parse("http://127.0.0.1:8000/signup"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "first_name": first.text,
-        "middle_name": middle.text,
-        "last_name": last.text,
-        "gender": gender,
-        "dob": dob.toString(),
-        "phone": "${selectedCountry.code} ${phone.text}",
-        "emergency_contact": "${selectedEmgCountry.code} ${emergency.text}",
-        "nationality": selectedNation,
-        "address": address.text,
-        "blood_group": blood,
-        "email": email.text,
-        "password": password.text,
-      }),
-    );
-    final data = jsonDecode(response.body);
-    if (data["status"] == "success") {
-      Navigator.pop(context);
-    } else {
-      setState(() => errorMessage = data["message"]);
+    // Send OTP
+    try {
+      final otpRes = await http.post(
+        Uri.parse("http://localhost:8000/otp/send"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email.text}),
+      ).timeout(const Duration(seconds: 15));
+
+      final otpData = jsonDecode(otpRes.body);
+
+      if (otpData["status"] == "success") {
+        setState(() => _loading = false);
+        // Navigate to OTP screen
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OTPVerificationPage(
+              email: email.text,
+              onVerified: _createAccount, // Step 2: create account after OTP
+            ),
+          ),
+        );
+      } else {
+        setState(() {
+          errorMessage = otpData["message"] ?? "Failed to send OTP.";
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        errorMessage = "Connection error. Make sure backend is running.";
+        _loading = false;
+      });
+    }
+  }
+
+  // ── Step 2: Create account after OTP verified ─────────────────────────────
+  Future<void> _createAccount() async {
+    try {
+      final response = await http.post(
+        Uri.parse("http://localhost:8000/signup"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "first_name":       first.text,
+          "middle_name":      middle.text,
+          "last_name":        last.text,
+          "gender":           gender,
+          "dob":              dob.toString(),
+          "phone":            "${selectedCountry.code} ${phone.text}",
+          "emergency_contact":"${selectedEmgCountry.code} ${emergency.text}",
+          "nationality":      selectedNation,
+          "address":          address.text,
+          "blood_group":      blood,
+          "email":            email.text,
+          "password":         password.text,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (data["status"] == "success") {
+        // Pop OTP screen + register screen, back to login
+        Navigator.popUntil(context, (route) => route.isFirst);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created! Please login.'),
+            backgroundColor: Color(0xFF1A6B3C),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data["message"] ?? "Signup failed"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Connection error. Please try again."),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -410,7 +474,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   PasswordField(label: "Confirm Password", controller: confirm),
                   if (errorMessage != null) inlineError(errorMessage!),
                   const SizedBox(height: 10),
-                  actionButton("CREATE ACCOUNT", signup),
+                  // Show loading or button
+                  _loading
+                      ? const CircularProgressIndicator(color: Color(0xFF1A6B3C))
+                      : actionButton("SEND VERIFICATION CODE", signup),
                 ],
               ),
             ),

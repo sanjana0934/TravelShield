@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../sos/sos_page.dart';
 import '../profile/profile_page.dart';
@@ -17,50 +18,100 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int index = 0;
 
-  final pages = [const HomePage(), SOSPage(), const ProfilePage()];
+  final pages = [
+    const HomePage(),
+    const SOSPage(),
+    const ProfilePage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: const AppDrawer(),
-      body: pages[index],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(.08),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+    return WillPopScope(
+      onWillPop: () async {
+        // If not on home tab, go to home tab instead of exiting
+        if (index != 0) {
+          setState(() => index = 0);
+          return false;
+        }
+        // On home tab — show exit confirmation
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: Text(
+              'Exit App?',
+              style: GoogleFonts.urbanist(
+                  fontWeight: FontWeight.w800, fontSize: 17),
             ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  selected: index == 0,
-                  onTap: () => setState(() => index = 0),
+            content: Text(
+              'Are you sure you want to exit TravelShield?',
+              style: GoogleFonts.urbanist(fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel',
+                    style: GoogleFonts.urbanist(
+                        color: Colors.grey, fontWeight: FontWeight.w600)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
-                _NavItem(
-                  icon: Icons.warning_amber_rounded,
-                  label: 'SOS',
-                  selected: index == 1,
-                  onTap: () => setState(() => index = 1),
-                  isAlert: true,
-                ),
-                _NavItem(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  selected: index == 2,
-                  onTap: () => setState(() => index = 2),
-                ),
-              ],
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Exit',
+                    style: GoogleFonts.urbanist(
+                        color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        );
+        return shouldExit ?? false;
+      },
+      child: Scaffold(
+        drawer: const AppDrawer(),
+        body: pages[index],
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(.08),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _NavItem(
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    selected: index == 0,
+                    onTap: () => setState(() => index = 0),
+                  ),
+                  _NavItem(
+                    icon: Icons.warning_amber_rounded,
+                    label: 'SOS',
+                    selected: index == 1,
+                    onTap: () => setState(() => index = 1),
+                    isAlert: true,
+                  ),
+                  _NavItem(
+                    icon: Icons.person_rounded,
+                    label: 'Profile',
+                    selected: index == 2,
+                    onTap: () => setState(() => index = 2),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -89,8 +140,8 @@ class _NavItem extends StatelessWidget {
     final color = isAlert
         ? const Color(0xFFE53935)
         : selected
-        ? _primary
-        : const Color(0xFF8FA89B);
+            ? _primary
+            : const Color(0xFF8FA89B);
 
     return GestureDetector(
       onTap: onTap,
@@ -100,7 +151,9 @@ class _NavItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? (isAlert ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5EE))
+              ? (isAlert
+                  ? const Color(0xFFFFEBEE)
+                  : const Color(0xFFE8F5EE))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),

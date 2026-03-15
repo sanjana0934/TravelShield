@@ -8,7 +8,8 @@ import '../../services/user_session.dart';
 import '../../data/destinations.dart';
 import '../../drawer/app_drawer.dart';
 import '../chatbot/chatbot_screen.dart';
-
+import 'package:geolocator/geolocator.dart';
+import '../../services/user_session.dart';
 // ── Tokens ────────────────────────────────────────────────────────────────────
 const _bg      = Color(0xFFF5F6F8);
 const _white   = Colors.white;
@@ -119,14 +120,17 @@ class HomePage extends StatelessWidget {
                 child: Stack(
                   children: [
                     CircleAvatar(
-                      radius: 22,
-                      backgroundColor: const Color(0xFFEEF5F1),
-                      child: const CircleAvatar(
-                        radius: 19,
-                        backgroundImage:
-                            AssetImage("assets/images/profile.jpg"),
-                      ),
-                    ),
+  radius: 22,
+  backgroundColor: const Color(0xFFEEF5F1),
+  child: Text(
+    (UserSession.currentUser["first_name"] ?? "U")[0].toUpperCase(),
+    style: GoogleFonts.urbanist(
+      fontSize: 16,
+      fontWeight: FontWeight.w800,
+      color: _primary,
+    ),
+  ),
+),
                     Positioned(
                       right: 1, bottom: 1,
                       child: Container(
@@ -587,32 +591,21 @@ class _WeatherSafetyCardState extends State<_WeatherSafetyCard> {
   }
 
   // Get nearest Kerala city from browser/device and fetch weather
-  Future<void> _fetchWeatherForLocation() async {
-    setState(() { _loading = true; _error = null; });
-
-    // Default to Kochi if location unavailable
-    String city = 'Kochi';
-
-    // Try IP-based location (works on web without permissions)
-    try {
-      final res = await http
-          .get(Uri.parse('https://ipapi.co/json/'))
-          .timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final json = jsonDecode(res.body);
-        final lat  = (json['latitude']  as num?)?.toDouble();
-        final lng  = (json['longitude'] as num?)?.toDouble();
-        if (lat != null && lng != null) {
-          city = _nearestKeralaCity(lat, lng);
-        }
-      }
-    } catch (_) {
-      // fallback to Kochi
+ Future<void> _fetchWeatherForLocation() async {
+  setState(() { _loading = true; _error = null; });
+  String city = 'Kochi';
+  try {
+    final perm = await Geolocator.requestPermission();
+    if (perm != LocationPermission.denied &&
+        perm != LocationPermission.deniedForever) {
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.low);
+      city = _nearestKeralaCity(pos.latitude, pos.longitude);
     }
-
-    setState(() => _detectedCity = city);
-    await _fetchWeather(city);
-  }
+  } catch (_) {}
+  setState(() => _detectedCity = city);
+  await _fetchWeather(city);
+}
 
   String _nearestKeralaCity(double lat, double lng) {
     String nearest = 'Kochi';
