@@ -1,15 +1,41 @@
+# TravelShield Backend Dependencies
+# Install with: pip install -r requirements.txt
+
+# ── Web Framework ─────────────────────────────────────────────────
 fastapi
 uvicorn[standard]
+
+# ── HTTP & Networking ─────────────────────────────────────────────
 httpx
+requests
+
+# ── Security (JWT + Password Hashing) ────────────────────────────
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.0.1
+
+# ── Environment & Config ─────────────────────────────────────────
 python-dotenv
+
+# ── Database ──────────────────────────────────────────────────────
+# SQLite is built into Python — no extra package needed
+
+# ── File Handling ─────────────────────────────────────────────────
+python-multipart
 pillow
+
+# ── Machine Learning & Computer Vision ───────────────────────────
 opencv-python
 pandas
 scikit-learn
 tensorflow
-python-multipart
-requests
-SpeechRecognition
-sounddevice
 numpy
 scipy
+
+# ── NLP & Speech ─────────────────────────────────────────────────
+SpeechRecognition
+sounddevice
+
+# ── Email (OTP) ───────────────────────────────────────────────────
+# Add your email package here if using SMTP
+# e.g. fastapi-mail

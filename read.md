@@ -7,29 +7,42 @@
 ```
 TravelShield/
 ├── .gitignore
-├── read.md
+├── README.md
 │
 ├── backend/
-│   ├── main.py
-│   ├── requirements.txt
+│   ├── main.py                  ← FastAPI entry point
+│   ├── requirements.txt         ← Python dependencies
+│   ├── render.yaml              ← Render deployment config
 │   ├── database.db              ← auto-created on first run (gitignored)
 │   ├── .env                     ← never pushed (gitignored)
 │   │
 │   ├── core/
 │   │   ├── __init__.py
 │   │   ├── config.py            ← API keys from .env
-│   │   └── database.py          ← SQLite setup
+│   │   ├── database.py          ← SQLite setup + table init
+│   │   └── security.py          ← JWT tokens, bcrypt hashing, rate limiting
 │   │
 │   ├── routers/
 │   │   ├── __init__.py
-│   │   ├── auth.py              ← /signup /login /profile
+│   │   ├── auth.py              ← /signup /login /profile /account
+│   │   ├── otp.py               ← /otp/send /otp/verify
+│   │   ├── sos.py               ← /send_location
 │   │   ├── qr.py                ← /check_qr /detect_qr_image
 │   │   ├── currency.py          ← /detect_currency
 │   │   ├── clothing.py          ← /clothing_suggestion/{city}
 │   │   ├── chatbot.py           ← /chat
 │   │   ├── alerts.py            ← /districts /district-news
 │   │   ├── trips.py             ← /trips CRUD
-│   │   └── itinerary.py         ← /itinerary/generate
+│   │   ├── itinerary.py         ← /itinerary/generate
+│   │   ├── assistant.py         ← AI assistant
+│   │   └── price_check.py       ← /price
+│   │
+│   ├── nlp/
+│   │   ├── __init__.py
+│   │   ├── price_check.py
+│   │   ├── service.py
+│   │   ├── speech_to_text.py
+│   │   └── translation.py
 │   │
 │   ├── models/                  ← gitignored, share via Drive
 │   │   ├── qr_model.pkl
@@ -40,7 +53,6 @@ TravelShield/
 └── travel_app/
     ├── pubspec.yaml
     ├── pubspec.lock
-    ├── main.dart
     │
     ├── assets/
     │   ├── images/
@@ -52,15 +64,10 @@ TravelShield/
     │   │   └── profile.jpg
     │   │
     │   └── videos/              ← gitignored, share via Drive
-    │       ├── video1.mp4
-    │       ├── video2.mp4
-    │       ├── video3.mp4
-    │       ├── video4.mp4
-    │       ├── video5.mp4
-    │       └── video6.mp4
+    │       ├── video1.mp4 – video6.mp4
     │
     └── lib/
-        ├── main.dart
+        ├── main.dart            ← App entry + onboarding router
         │
         ├── data/
         │   └── destinations.dart
@@ -75,9 +82,12 @@ TravelShield/
         │   └── user_models.dart
         │
         ├── services/
+        │   ├── api_config.dart        ← baseUrl (change once for all pages)
         │   ├── api_service.dart       ← auth API calls
         │   ├── chatbot_service.dart   ← /chat
         │   ├── news_service.dart      ← /district-news
+        │   ├── rating_service.dart    ← app rating prompt logic
+        │   ├── token_service.dart     ← JWT token storage + auto logout
         │   ├── trip_api_service.dart  ← /trips + /itinerary
         │   └── user_session.dart      ← stores logged in user
         │
@@ -94,16 +104,20 @@ TravelShield/
         │   │   └── tools/
         │   │       ├── clothing_page.dart
         │   │       ├── currency_page.dart
+        │   │       ├── price_checker_page.dart
         │   │       ├── qr_scanner_page.dart
         │   │       └── translator_page.dart
         │   ├── login/
-        │   │   └── login_page.dart
+        │   │   ├── login_page.dart
+        │   │   └── otp_verification_page.dart
+        │   ├── onboarding/
+        │   │   └── onboarding_screen.dart  ← first-time walkthrough
         │   ├── profile/
         │   │   └── profile_page.dart
         │   ├── settings/
-        │   │   └── settings_page.dart
+        │   │   └── settings_page.dart      ← includes delete account
         │   ├── sos/
-        │   │   └── sos_page.dart
+        │   │   └── sos_page.dart           ← GPS, nearby help, SOS alert
         │   └── trip_planner/
         │       ├── create_trip_screen.dart
         │       ├── itinerary_screen.dart
@@ -113,6 +127,20 @@ TravelShield/
             ├── alert_card.dart
             ├── chat_bubble.dart
             └── news_tile.dart
+```
+
+---
+
+## Security Features
+| Feature | Details |
+|---|---|
+| Password hashing | bcrypt via passlib |
+| Authentication | JWT tokens (24hr expiry) |
+| Token storage | flutter_secure_storage |
+| Rate limiting | Max 5 failed logins / 15 min |
+| Auto logout | Token expiry check on app open |
+| Profile protection | JWT required for all profile endpoints |
+| Delete account | Cleans all user data + trips |
 
 ---
 
@@ -187,6 +215,21 @@ flutter run -d android    # Android (emulator or device)
 | Web / localhost | `http://localhost:8000` |
 | Android emulator | `http://10.0.2.2:8000` |
 | Physical device | `http://<your-wifi-ip>:8000` |
+| Production (Render) | `https://travelshield-backend.onrender.com` |
+
+> Update `lib/services/api_config.dart` to switch environments
+
+---
+
+## Deployment (Render)
+
+1. Push code to GitHub (`dev` branch)
+2. Go to [render.com](https://render.com) → New → Blueprint
+3. Connect `sanjana0934/TravelShield` repo
+4. Set environment variables in Render dashboard:
+   - `GROQ_API_KEY`
+   - `GNEWS_API_KEY`
+5. Deploy — backend will be live at `https://travelshield-backend.onrender.com`
 
 ---
 
@@ -218,10 +261,11 @@ git push origin feature/your-feature-name
 ## Environment Files (NEVER push these)
 | File | What it contains |
 |---|---|
-| `backend/.env` | API keys (GROQ, GNews, OpenWeather) |
+| `backend/.env` | API keys (GROQ, GNews) |
 | `backend/database.db` | Local SQLite database |
 | `backend/uploads/` | Uploaded images |
-| `backend/models/` | ML model files |
+| `backend/models/` | ML model files (too large for git) |
+| `backend/core/security.py` SECRET_KEY | Change before deploying! |
 
 Share API keys and model files via a **private channel** (WhatsApp/Telegram/Drive) — never commit them.
 
