@@ -32,7 +32,7 @@ def init_db():
             address          TEXT,
             blood_group      TEXT,
             email            TEXT UNIQUE,
-            password         TEXT,
+            password         TEXT,          -- bcrypt hash, never plain text
             created_at       TEXT
         )
         """)
@@ -66,6 +66,16 @@ def init_db():
             title       TEXT,
             activities  TEXT,
             FOREIGN KEY (trip_id) REFERENCES trips(id)
+        )
+        """)
+
+        # ── Login attempts (for rate limiting) ────────────────────────────────
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS login_attempts(
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            email        TEXT    NOT NULL,
+            attempted_at TEXT    NOT NULL,
+            success      INTEGER DEFAULT 0   -- 0=failed, 1=success
         )
         """)
 

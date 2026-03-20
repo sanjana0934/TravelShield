@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import '../../../services/api_config.dart';// ← centralized URL
 import 'dart:convert';
 
 const _bg      = Color(0xFFF5F6F8);
@@ -10,7 +10,6 @@ const _primary = Color(0xFF1A6B3C);
 const _dark    = Color(0xFF0D1B12);
 const _light   = Color(0xFF9EB5A8);
 
-const _baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://127.0.0.1:8000';
 
 class PriceCheckerPage extends StatefulWidget {
   const PriceCheckerPage({super.key});
@@ -58,7 +57,7 @@ class _PriceCheckerPageState extends State<PriceCheckerPage> {
 
     try {
       final response = await http.post(
-        Uri.parse("$_baseUrl/assistant/price-check"),
+        Uri.parse("$baseUrl/assistant/price-check"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "service":       service,

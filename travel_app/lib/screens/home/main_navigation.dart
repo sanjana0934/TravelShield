@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../sos/sos_page.dart';
 import '../profile/profile_page.dart';
 import 'home_page.dart';
 import '../../drawer/app_drawer.dart';
+import '../../services/token_service.dart';
+import '../../services/rating_service.dart'; // ← NEW
 
 const _primary = Color(0xFF1A6B3C);
 
@@ -25,29 +26,34 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Check token expiry
+      TokenService.checkAndLogoutIfExpired(context);
+      // Check if rating prompt should show
+      RatingService.checkAndShow(context); // ← NEW
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // If not on home tab, go to home tab instead of exiting
         if (index != 0) {
           setState(() => index = 0);
           return false;
         }
-        // On home tab — show exit confirmation
         final shouldExit = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20)),
-            title: Text(
-              'Exit App?',
-              style: GoogleFonts.urbanist(
-                  fontWeight: FontWeight.w800, fontSize: 17),
-            ),
-            content: Text(
-              'Are you sure you want to exit TravelShield?',
-              style: GoogleFonts.urbanist(fontSize: 14),
-            ),
+            title: Text('Exit App?',
+                style: GoogleFonts.urbanist(
+                    fontWeight: FontWeight.w800, fontSize: 17)),
+            content: Text('Are you sure you want to exit TravelShield?',
+                style: GoogleFonts.urbanist(fontSize: 14)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -162,14 +168,13 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 24),
             const SizedBox(height: 3),
-            Text(
-              label,
-              style: GoogleFonts.urbanist(
-                color: color,
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
+            Text(label,
+                style: GoogleFonts.urbanist(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight:
+                      selected ? FontWeight.w700 : FontWeight.w500,
+                )),
           ],
         ),
       ),

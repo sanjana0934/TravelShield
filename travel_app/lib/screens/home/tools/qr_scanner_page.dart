@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../services/api_config.dart'; // ← centralized URL
 
 const _bg      = Color(0xFFF5F6F8);
 const _white   = Colors.white;
@@ -12,7 +12,6 @@ const _primary = Color(0xFF1A6B3C);
 const _dark    = Color(0xFF0D1B12);
 const _light   = Color(0xFF9EB5A8);
 
-const _baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://127.0.0.1:8000';
 
 class QRScannerPage extends StatefulWidget {
   const QRScannerPage({super.key});
@@ -32,7 +31,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
   Future<void> checkQR(String text) async {
     try {
       final response = await http.post(
-        Uri.parse("$_baseUrl/check_qr"),
+        Uri.parse("$baseUrl/check_qr"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"text": text}),
       );
@@ -58,7 +57,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
 
     final bytes   = await image.readAsBytes();
     final request = http.MultipartRequest(
-        "POST", Uri.parse("$_baseUrl/detect_qr_image"));
+        "POST", Uri.parse("$baseUrl/detect_qr_image"));
     request.files.add(
         http.MultipartFile.fromBytes("file", bytes, filename: image.name));
 

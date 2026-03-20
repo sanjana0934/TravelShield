@@ -1,16 +1,35 @@
 """
 routers/auth.py  -  User authentication: signup, login, profile.
+Security: bcrypt password hashing, JWT tokens, rate limiting.
 """
 
 import re
-from datetime import datetime
-from fastapi import APIRouter
+from datetime import datetime, timedelta
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from core.database import get_db
+from core.security import (
+    hash_password, verify_password,
+    create_access_token, decode_token,
+    check_rate_limit, record_failed_attempt, clear_failed_attempts
+)
 
-router = APIRouter(tags=["Auth"])
+router   = APIRouter(tags=["Auth"])
+security = HTTPBearer()
 
 
-# -- Password validator -------------------------------------------------------
+# ── Auth dependency (protects any route) ─────────────────────────────────────
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Decode JWT and return email. Raises 401 if invalid/expired."""
+    token = credentials.credentials
+    email = decode_token(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+    return email
+
+
+# ── Password validator ────────────────────────────────────────────────────────
 
 def validate_password(password: str):
     if len(password) < 8:
@@ -24,7 +43,7 @@ def validate_password(password: str):
     return None
 
 
-# -- Signup -------------------------------------------------------------------
+# ── Signup ────────────────────────────────────────────────────────────────────
 
 @router.post("/signup")
 def signup(data: dict):
@@ -41,6 +60,9 @@ def signup(data: dict):
             cursor.execute("SELECT 1 FROM users WHERE email=?", (data["email"],))
             if cursor.fetchone():
                 return {"status": "error", "message": "An account with this email already exists."}
+
+            hashed = hash_password(data["password"])
+
             cursor.execute("""
             INSERT INTO users(
                 first_name, middle_name, last_name, gender, dob, phone,
@@ -52,7 +74,7 @@ def signup(data: dict):
                 data["gender"], data["dob"], data["phone"],
                 data["emergency_contact"], data["nationality"],
                 data["address"], data["blood_group"],
-                data["email"], data["password"],
+                data["email"], hashed,
                 datetime.now().isoformat()
             ))
             conn.commit()
@@ -61,29 +83,48 @@ def signup(data: dict):
         return {"status": "error", "message": str(e)}
 
 
-# -- Login --------------------------------------------------------------------
+# ── Login ─────────────────────────────────────────────────────────────────────
 
 @router.post("/login")
 def login(data: dict):
     try:
+        email    = data.get("email", "").strip()
+        password = data.get("password", "")
+
+        blocked, wait_minutes = check_rate_limit(email)
+        if blocked:
+            return {
+                "status": "error",
+                "message": f"Too many failed attempts. Try again in {wait_minutes} minute(s)."
+            }
+
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM users WHERE email=? AND password=?",
-                (data["email"], data["password"])
-            )
+            cursor.execute("SELECT * FROM users WHERE email=?", (email,))
             user = cursor.fetchone()
-        if user:
-            return {"status": "success", "user": _row_to_user(user)}
-        return {"status": "error", "message": "Invalid login"}
+
+        if user and verify_password(password, user[12]):
+            clear_failed_attempts(email)
+            token = create_access_token({"sub": email})
+            return {
+                "status": "success",
+                "token":  token,
+                "user":   _row_to_user(user)
+            }
+
+        record_failed_attempt(email)
+        return {"status": "error", "message": "Invalid email or password."}
+
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
 
-# -- Profile ------------------------------------------------------------------
+# ── Profile (protected) ───────────────────────────────────────────────────────
 
 @router.get("/profile/{email}")
-def get_profile(email: str):
+def get_profile(email: str, current_user: str = Depends(get_current_user)):
+    if current_user != email:
+        raise HTTPException(status_code=403, detail="Access denied.")
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -96,14 +137,17 @@ def get_profile(email: str):
         return {"status": "error", "message": str(e)}
 
 
+# ── Update Profile (protected) ────────────────────────────────────────────────
 
 @router.patch("/profile/{email}")
-def update_profile(email: str, data: dict):
+def update_profile(email: str, data: dict, current_user: str = Depends(get_current_user)):
+    if current_user != email:
+        raise HTTPException(status_code=403, detail="Access denied.")
     try:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                UPDATE users 
+                UPDATE users
                 SET phone=?, emergency_contact=?, address=?
                 WHERE email=?
             """, (
@@ -117,12 +161,49 @@ def update_profile(email: str, data: dict):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# -- Helper -------------------------------------------------------------------
+
+# ── Delete Account (protected) ────────────────────────────────────────────────
+
+@router.delete("/account")
+def delete_account(current_user: str = Depends(get_current_user)):
+    """
+    Permanently deletes the authenticated user's account and all their data.
+    Requires a valid JWT token.
+    """
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+
+            # Delete user's trips and itinerary days first (foreign key cleanup)
+            cursor.execute("""
+                DELETE FROM itinerary_days WHERE trip_id IN (
+                    SELECT id FROM trips WHERE user_email=?
+                )
+            """, (current_user,))
+
+            cursor.execute("DELETE FROM trips WHERE user_email=?", (current_user,))
+
+            # Delete login attempts
+            cursor.execute("DELETE FROM login_attempts WHERE email=?", (current_user,))
+
+            # Finally delete the user
+            cursor.execute("DELETE FROM users WHERE email=?", (current_user,))
+
+            conn.commit()
+
+        return {"status": "success", "message": "Account deleted successfully."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── Helper ────────────────────────────────────────────────────────────────────
 
 def _row_to_user(row):
     return {
-        "first_name": row[1], "middle_name": row[2], "last_name": row[3],
-        "gender": row[4], "dob": row[5], "phone": row[6],
-        "emergency_contact": row[7], "nationality": row[8],
-        "address": row[9], "blood_group": row[10], "email": row[11],
+        "first_name":        row[1],  "middle_name":     row[2],
+        "last_name":         row[3],  "gender":          row[4],
+        "dob":               row[5],  "phone":           row[6],
+        "emergency_contact": row[7],  "nationality":     row[8],
+        "address":           row[9],  "blood_group":     row[10],
+        "email":             row[11],
     }

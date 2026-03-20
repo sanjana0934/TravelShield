@@ -2,15 +2,9 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'api_config.dart'; // ← import the config
 
 class ChatbotService {
-  // ── Configuration ──────────────────────────────────────────────────────────
-  // Same backend as the rest of the travel app (port 8000)
-  // Android emulator  → http://10.0.2.2:8000
-  // Physical device   → http://<your-local-IP>:8000
-  // Chrome / web dev  → http://localhost:8000
-  static const String _baseUrl = 'http://localhost:8000';
-
   static const Duration _timeout = Duration(seconds: 30);
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -19,7 +13,7 @@ class ChatbotService {
     required String message,
     String? location,
   }) async {
-    final uri = Uri.parse('$_baseUrl/chat');
+    final uri = Uri.parse('$baseUrl/chat'); // ← uses baseUrl from api_config.dart
 
     final body = jsonEncode({
       'message': message,
@@ -58,7 +52,7 @@ class ChatbotService {
   static Future<bool> checkHealth() async {
     try {
       final response = await http
-          .get(Uri.parse('$_baseUrl/health'))
+          .get(Uri.parse('$baseUrl/health')) // ← uses baseUrl from api_config.dart
           .timeout(const Duration(seconds: 5));
       return response.statusCode == 200;
     } catch (_) {

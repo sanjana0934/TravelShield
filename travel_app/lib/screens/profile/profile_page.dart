@@ -1,17 +1,15 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../services/user_session.dart';
+import '../../services/api_config.dart'; // ← import the config
 
 const _bg      = Color(0xFFF5F6F8);
 const _white   = Colors.white;
 const _primary = Color(0xFF1A6B3C);
 const _dark    = Color(0xFF0D1B12);
 const _light   = Color(0xFF9EB5A8);
-
-const _baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -55,14 +53,14 @@ class _ProfilePageState extends State<ProfilePage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               elevation: 0,
             ),
-      onPressed: () {
-  Navigator.of(context).pop(); // close dialog
-  UserSession.clear();
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    Navigator.of(context, rootNavigator: true)
-        .pushNamedAndRemoveUntil('/', (route) => false);
-  });
-},
+            onPressed: () {
+              Navigator.of(context).pop();
+              UserSession.clear();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.of(context, rootNavigator: true)
+                    .pushNamedAndRemoveUntil('/', (route) => false);
+              });
+            },
             child: Text('Log Out',
                 style: GoogleFonts.urbanist(color: _white, fontWeight: FontWeight.w700)),
           ),
@@ -256,7 +254,7 @@ class _EditProfilePageState extends State<_EditProfilePage> {
     UserSession.currentUser["address"]           = _addressCtrl.text.trim();
     try {
       await http.patch(
-        Uri.parse('$_baseUrl/profile/${UserSession.email}'),
+        Uri.parse('$baseUrl/profile/${UserSession.email}'), // ← uses baseUrl
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'phone':             _phoneCtrl.text.trim(),

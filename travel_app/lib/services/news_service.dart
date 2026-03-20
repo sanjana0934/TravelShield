@@ -1,8 +1,8 @@
 // lib/services/news_service.dart
 
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'api_config.dart'; // ← import the config
 
 // ─────────────────────────────────────────────
 // Data Models
@@ -86,19 +86,10 @@ class DistrictAlertData {
 // ─────────────────────────────────────────────
 
 class NewsService {
-  // Same backend as the rest of the travel app
-  // Chrome / web dev  → http://localhost:8000
-  // Android emulator  → http://10.0.2.2:8000
-  // Physical device   → http://YOUR_WIFI_IP:8000
-  static const String _baseUrl = kIsWeb
-      ? 'http://localhost:8000'
-      : 'http://10.0.2.2:8000';
-      
-
   static const Duration _timeout = Duration(seconds: 20);
 
   static Future<DistrictAlertData> fetchDistrictAlerts(String district) async {
-    final uri = Uri.parse('$_baseUrl/district-news')
+    final uri = Uri.parse('$baseUrl/district-news') // ← uses baseUrl
         .replace(queryParameters: {'district': district});
     final response = await http.get(uri).timeout(_timeout);
     if (response.statusCode == 200) {
@@ -110,7 +101,7 @@ class NewsService {
 
   static Future<List<String>> fetchDistrictList() async {
     try {
-      final uri = Uri.parse('$_baseUrl/districts');
+      final uri = Uri.parse('$baseUrl/districts'); // ← uses baseUrl
       final response = await http.get(uri).timeout(_timeout);
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;

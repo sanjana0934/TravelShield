@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../services/api_config.dart'; // ← centralized URL
 
 const _bg      = Color(0xFFF5F6F8);
 const _white   = Colors.white;
@@ -12,7 +12,6 @@ const _accent  = Color(0xFF25A05B);
 const _dark    = Color(0xFF0D1B12);
 const _light   = Color(0xFF9EB5A8);
 
-const _baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://127.0.0.1:8000';
 
 class TranslatorPage extends StatefulWidget {
   const TranslatorPage({super.key});
@@ -35,7 +34,7 @@ class _TranslatorPageState extends State<TranslatorPage> {
 
     try {
       final response = await http.post(
-        Uri.parse("$_baseUrl/assistant/translate"),
+        Uri.parse("$baseUrl/assistant/translate"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "text": text,

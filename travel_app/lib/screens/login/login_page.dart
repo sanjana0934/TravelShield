@@ -6,6 +6,8 @@ import 'package:video_player/video_player.dart';
 import 'otp_verification_page.dart';
 
 import '../../services/user_session.dart';
+import '../../services/api_config.dart';
+import '../../services/token_service.dart'; // ← NEW
 import '../home/main_navigation.dart';
 
 
@@ -56,19 +58,25 @@ class _KeralaBackgroundState extends State<KeralaBackground> {
 
   @override
   Widget build(BuildContext context) {
-    if (!controller.value.isInitialized) return const SizedBox();
     return Stack(
       children: [
-        SizedBox.expand(
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: controller.value.size.width,
-              height: controller.value.size.height,
-              child: VideoPlayer(controller),
+        // Fallback background always visible while video loads
+        Container(color: const Color(0xFF1A6B3C)),
+
+        // Video plays on top once ready
+        if (controller.value.isInitialized)
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: controller.value.size.width,
+                height: controller.value.size.height,
+                child: VideoPlayer(controller),
+              ),
             ),
           ),
-        ),
+
+        // Gradient overlay always visible
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -78,6 +86,8 @@ class _KeralaBackgroundState extends State<KeralaBackground> {
             ),
           ),
         ),
+
+        // Login card always visible
         widget.child,
       ],
     );
@@ -223,56 +233,85 @@ class _LoginPageState extends State<LoginPage> {
   final email    = TextEditingController();
   final password = TextEditingController();
   String? errorMessage;
+  bool _loading = false; // ← NEW: loading state
 
+  // ── UPDATED login() with JWT + secure storage ─────────────────────────────
   Future<void> login() async {
-    setState(() => errorMessage = null);
-    final response = await http.post(
-      Uri.parse("http://localhost:8000/login"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": email.text, "password": password.text}),
-    );
-    final data = jsonDecode(response.body);
-    if (data["status"] == "success") {
-      UserSession.setUser(data["user"]);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainNavigation()),
+    setState(() { errorMessage = null; _loading = true; });
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/login"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email.text, "password": password.text}),
       );
-    } else {
-      setState(() => errorMessage = data["message"]);
+      final data = jsonDecode(response.body);
+
+      if (data["status"] == "success") {
+        // ── Save JWT token securely ─────────────────────────────────────────
+        await TokenService.saveToken(data["token"]);
+
+        // ── Save user session ───────────────────────────────────────────────
+        UserSession.setUser(data["user"]);
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
+        );
+      } else {
+        setState(() => errorMessage = data["message"]);
+      }
+    } catch (e) {
+      setState(() => errorMessage = "Connection error. Please try again.");
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: KeralaBackground(
-        child: Center(
-          child: glassCard(
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset("assets/images/kathakali.png", height: 120),
-                const SizedBox(height: 20),
-                const Text(
-                  "Explore Kerala With Us",
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                ),
-                const Text("God's Own Country 🌊"),
-                const SizedBox(height: 25),
-                field("Email", controller: email),
-                PasswordField(label: "Password", controller: password),
-                if (errorMessage != null) inlineError(errorMessage!),
-                const SizedBox(height: 8),
-                actionButton("LOGIN", login),
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RegisterPage()),
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height,
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: glassCard(
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset("assets/images/kathakali.png", height: 120),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "Explore Kerala With Us",
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                      ),
+                      const Text("God's Own Country 🌊"),
+                      const SizedBox(height: 25),
+                      field("Email", controller: email),
+                      PasswordField(label: "Password", controller: password),
+                      if (errorMessage != null) inlineError(errorMessage!),
+                      const SizedBox(height: 8),
+                      // ── Show spinner while logging in ─────────────────────
+                      _loading
+                          ? const CircularProgressIndicator(color: Color(0xFF1A6B3C))
+                          : actionButton("LOGIN", login),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const RegisterPage()),
+                        ),
+                        child: const Text("New Tourist? Register"),
+                      ),
+                    ],
                   ),
-                  child: const Text("New Tourist? Register"),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -327,7 +366,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> signup() async {
     setState(() { errorMessage = null; _loading = true; });
 
-    // Validations
     if (first.text.isEmpty || last.text.isEmpty) {
       setState(() { errorMessage = "Please enter your name."; _loading = false; });
       return;
@@ -353,10 +391,9 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // Send OTP
     try {
       final otpRes = await http.post(
-        Uri.parse("http://localhost:8000/otp/send"),
+        Uri.parse("$baseUrl/otp/send"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"email": email.text}),
       ).timeout(const Duration(seconds: 15));
@@ -365,14 +402,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (otpData["status"] == "success") {
         setState(() => _loading = false);
-        // Navigate to OTP screen
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => OTPVerificationPage(
               email: email.text,
-              onVerified: _createAccount, // Step 2: create account after OTP
+              onVerified: _createAccount,
             ),
           ),
         );
@@ -394,26 +430,25 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _createAccount() async {
     try {
       final response = await http.post(
-        Uri.parse("http://localhost:8000/signup"),
+        Uri.parse("$baseUrl/signup"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "first_name":       first.text,
-          "middle_name":      middle.text,
-          "last_name":        last.text,
-          "gender":           gender,
-          "dob":              dob.toString(),
-          "phone":            "${selectedCountry.code} ${phone.text}",
-          "emergency_contact":"${selectedEmgCountry.code} ${emergency.text}",
-          "nationality":      selectedNation,
-          "address":          address.text,
-          "blood_group":      blood,
-          "email":            email.text,
-          "password":         password.text,
+          "first_name":        first.text,
+          "middle_name":       middle.text,
+          "last_name":         last.text,
+          "gender":            gender,
+          "dob":               dob.toString(),
+          "phone":             "${selectedCountry.code} ${phone.text}",
+          "emergency_contact": "${selectedEmgCountry.code} ${emergency.text}",
+          "nationality":       selectedNation,
+          "address":           address.text,
+          "blood_group":       blood,
+          "email":             email.text,
+          "password":          password.text,
         }),
       );
       final data = jsonDecode(response.body);
       if (data["status"] == "success") {
-        // Pop OTP screen + register screen, back to login
         Navigator.popUntil(context, (route) => route.isFirst);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -474,7 +509,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   PasswordField(label: "Confirm Password", controller: confirm),
                   if (errorMessage != null) inlineError(errorMessage!),
                   const SizedBox(height: 10),
-                  // Show loading or button
                   _loading
                       ? const CircularProgressIndicator(color: Color(0xFF1A6B3C))
                       : actionButton("SEND VERIFICATION CODE", signup),

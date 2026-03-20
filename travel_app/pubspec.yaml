@@ -12,30 +12,27 @@ dependencies:
     sdk: flutter
   geolocator: ^10.1.0
   url_launcher: ^6.2.0
-
-  # HTTP & networking
   http: ^1.2.1
-
-  # QR & image
   mobile_scanner: ^5.0.0
   google_mlkit_barcode_scanning: ^0.10.0
   image_picker: ^1.1.2
-
-  # Speech recognition
-  speech_to_text: ^6.6.0
-
-  # UI
+  speech_to_text: ^7.0.0
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
   percent_indicator: ^4.2.3
-
-  # Video
   video_player: ^2.8.2
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
 
 flutter:
   uses-material-design: true

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import '../../../services/api_config.dart'; // ← centralized URL
 
 const _bg      = Color(0xFFF5F6F8);
 const _white   = Colors.white;
@@ -10,7 +10,6 @@ const _primary = Color(0xFF1A6B3C);
 const _dark    = Color(0xFF0D1B12);
 const _light   = Color(0xFF9EB5A8);
 
-const _baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://127.0.0.1:8000';
 
 class ClothingPage extends StatefulWidget {
   const ClothingPage({super.key});
@@ -53,7 +52,7 @@ class _ClothingPageState extends State<ClothingPage> {
 
     try {
       final response = await http.get(
-        Uri.parse("$_baseUrl/clothing_suggestion/${cityController.text.trim()}"),
+        Uri.parse("$baseUrl/clothing_suggestion/${cityController.text.trim()}"),
       );
       final data = jsonDecode(response.body);
 

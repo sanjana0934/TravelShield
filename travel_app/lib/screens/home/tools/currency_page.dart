@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../services/api_config.dart'; // ← centralized URL
 
 const _bg      = Color(0xFFF5F6F8);
 const _white   = Colors.white;
@@ -13,7 +13,6 @@ const _accent  = Color(0xFF25A05B);
 const _dark    = Color(0xFF0D1B12);
 const _light   = Color(0xFF9EB5A8);
 
-const _baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://127.0.0.1:8000';
 
 class CurrencyPage extends StatefulWidget {
   const CurrencyPage({super.key});
@@ -45,7 +44,7 @@ class _CurrencyPageState extends State<CurrencyPage> {
       final bytes   = await image.readAsBytes();
       final request = http.MultipartRequest(
         "POST",
-        Uri.parse("$_baseUrl/detect_currency"),
+        Uri.parse("$baseUrl/detect_currency"),
       );
       request.files.add(
         http.MultipartFile.fromBytes("file", bytes, filename: image.name),

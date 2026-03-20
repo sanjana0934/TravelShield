@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/trip_model.dart';
 import 'user_session.dart';
+import 'api_config.dart'; // ← import the config
 
 class TripApiService {
-  static const String baseUrl = 'http://localhost:8000';
   static final TripApiService _instance = TripApiService._internal();
   factory TripApiService() => _instance;
   TripApiService._internal();
@@ -69,7 +69,6 @@ class TripApiService {
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
       final raw = List<String>.from(data['districts'] ?? []);
-      // Remove duplicates and sort
       return raw.toSet().toList()..sort();
     }
     throw Exception('Failed to load destinations');

@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../../services/api_config.dart'; // ← import the config
 
 const _bg      = Color(0xFFF5F6F8);
 const _white   = Colors.white;
@@ -11,11 +11,9 @@ const _primary = Color(0xFF1A6B3C);
 const _dark    = Color(0xFF0D1B12);
 const _light   = Color(0xFF9EB5A8);
 
-const _baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
-
 class OTPVerificationPage extends StatefulWidget {
   final String email;
-  final VoidCallback onVerified; // called when OTP is correct
+  final VoidCallback onVerified;
 
   const OTPVerificationPage({
     super.key,
@@ -33,7 +31,7 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
   final List<FocusNode> _focusNodes =
       List.generate(6, (_) => FocusNode());
 
-  bool _loading  = false;
+  bool _loading   = false;
   bool _resending = false;
   String? _error;
 
@@ -54,7 +52,7 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final res = await http.post(
-        Uri.parse('$_baseUrl/otp/verify'),
+        Uri.parse('$baseUrl/otp/verify'), // ← uses baseUrl
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': widget.email, 'otp': _otp}),
       ).timeout(const Duration(seconds: 10));
@@ -73,7 +71,7 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     setState(() { _resending = true; _error = null; });
     try {
       final res = await http.post(
-        Uri.parse('$_baseUrl/otp/send'),
+        Uri.parse('$baseUrl/otp/send'), // ← uses baseUrl
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': widget.email}),
       ).timeout(const Duration(seconds: 10));
@@ -122,11 +120,10 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
 
             const SizedBox(height: 20),
 
-            // Icon
             Container(
               width: 80, height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEF5F1),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEEF5F1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.mark_email_unread_rounded,
@@ -156,7 +153,6 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
 
             const SizedBox(height: 36),
 
-            // OTP boxes
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(6, (i) => _OTPBox(
@@ -175,7 +171,6 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
 
             const SizedBox(height: 16),
 
-            // Error
             if (_error != null)
               Container(
                 width: double.infinity,
@@ -196,7 +191,6 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
 
             const SizedBox(height: 28),
 
-            // Verify button
             SizedBox(
               width: double.infinity, height: 52,
               child: ElevatedButton(
@@ -220,7 +214,6 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
 
             const SizedBox(height: 20),
 
-            // Resend
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Text("Didn't receive the code? ",
                   style: GoogleFonts.urbanist(color: _light, fontSize: 13)),
@@ -242,8 +235,6 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     );
   }
 }
-
-// ── Single OTP Box ────────────────────────────────────────────────────────────
 
 class _OTPBox extends StatelessWidget {
   final TextEditingController controller;
