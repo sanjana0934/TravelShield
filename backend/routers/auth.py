@@ -1,10 +1,11 @@
 """
 routers/auth.py  -  User authentication: signup, login, profile.
 Security: bcrypt password hashing, JWT tokens, rate limiting.
+Updated for PostgreSQL — uses %s instead of ?
 """
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from core.database import get_db
@@ -18,10 +19,9 @@ router   = APIRouter(tags=["Auth"])
 security = HTTPBearer()
 
 
-# ── Auth dependency (protects any route) ─────────────────────────────────────
+# ── Auth dependency ───────────────────────────────────────────────────────────
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Decode JWT and return email. Raises 401 if invalid/expired."""
     token = credentials.credentials
     email = decode_token(token)
     if not email:
@@ -57,7 +57,7 @@ def signup(data: dict):
 
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM users WHERE email=?", (data["email"],))
+            cursor.execute("SELECT 1 FROM users WHERE email=%s", (data["email"],))
             if cursor.fetchone():
                 return {"status": "error", "message": "An account with this email already exists."}
 
@@ -68,7 +68,7 @@ def signup(data: dict):
                 first_name, middle_name, last_name, gender, dob, phone,
                 emergency_contact, nationality, address, blood_group,
                 email, password, created_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 data["first_name"], data["middle_name"], data["last_name"],
                 data["gender"], data["dob"], data["phone"],
@@ -77,7 +77,6 @@ def signup(data: dict):
                 data["email"], hashed,
                 datetime.now().isoformat()
             ))
-            conn.commit()
         return {"status": "success", "message": "User registered successfully"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -100,7 +99,7 @@ def login(data: dict):
 
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE email=?", (email,))
+            cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
             user = cursor.fetchone()
 
         if user and verify_password(password, user[12]):
@@ -128,7 +127,7 @@ def get_profile(email: str, current_user: str = Depends(get_current_user)):
     try:
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE email=?", (email,))
+            cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
             user = cursor.fetchone()
         if not user:
             return {"status": "error", "message": "User not found"}
@@ -148,15 +147,14 @@ def update_profile(email: str, data: dict, current_user: str = Depends(get_curre
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE users
-                SET phone=?, emergency_contact=?, address=?
-                WHERE email=?
+                SET phone=%s, emergency_contact=%s, address=%s
+                WHERE email=%s
             """, (
                 data.get("phone"),
                 data.get("emergency_contact"),
                 data.get("address"),
                 email
             ))
-            conn.commit()
         return {"status": "success", "message": "Profile updated"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -166,31 +164,17 @@ def update_profile(email: str, data: dict, current_user: str = Depends(get_curre
 
 @router.delete("/account")
 def delete_account(current_user: str = Depends(get_current_user)):
-    """
-    Permanently deletes the authenticated user's account and all their data.
-    Requires a valid JWT token.
-    """
     try:
         with get_db() as conn:
             cursor = conn.cursor()
-
-            # Delete user's trips and itinerary days first (foreign key cleanup)
             cursor.execute("""
                 DELETE FROM itinerary_days WHERE trip_id IN (
-                    SELECT id FROM trips WHERE user_email=?
+                    SELECT id FROM trips WHERE user_email=%s
                 )
             """, (current_user,))
-
-            cursor.execute("DELETE FROM trips WHERE user_email=?", (current_user,))
-
-            # Delete login attempts
-            cursor.execute("DELETE FROM login_attempts WHERE email=?", (current_user,))
-
-            # Finally delete the user
-            cursor.execute("DELETE FROM users WHERE email=?", (current_user,))
-
-            conn.commit()
-
+            cursor.execute("DELETE FROM trips WHERE user_email=%s", (current_user,))
+            cursor.execute("DELETE FROM login_attempts WHERE email=%s", (current_user,))
+            cursor.execute("DELETE FROM users WHERE email=%s", (current_user,))
         return {"status": "success", "message": "Account deleted successfully."}
     except Exception as e:
         return {"status": "error", "message": str(e)}

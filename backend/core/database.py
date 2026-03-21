@@ -1,15 +1,27 @@
 """
-core/database.py  –  Database connection and table initialisation.
+core/database.py  –  PostgreSQL connection and table initialisation.
+Uses psycopg2 to connect to Supabase PostgreSQL.
 Call `init_db()` once on app startup.
 """
 
-import sqlite3
-from core.config import DB_NAME
+import psycopg2
+import psycopg2.extras
+from contextlib import contextmanager
+from core.config import DATABASE_URL
 
 
+@contextmanager
 def get_db():
-    """Return a raw sqlite3 connection. Use as a context manager."""
-    return sqlite3.connect(DB_NAME)
+    """Return a PostgreSQL connection as a context manager."""
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db():
@@ -20,27 +32,27 @@ def init_db():
         # ── Users ─────────────────────────────────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS users(
-            id               INTEGER PRIMARY KEY AUTOINCREMENT,
-            first_name       TEXT,
-            middle_name      TEXT,
-            last_name        TEXT,
-            gender           TEXT,
-            dob              TEXT,
-            phone            TEXT,
+            id                SERIAL PRIMARY KEY,
+            first_name        TEXT,
+            middle_name       TEXT,
+            last_name         TEXT,
+            gender            TEXT,
+            dob               TEXT,
+            phone             TEXT,
             emergency_contact TEXT,
-            nationality      TEXT,
-            address          TEXT,
-            blood_group      TEXT,
-            email            TEXT UNIQUE,
-            password         TEXT,          -- bcrypt hash, never plain text
-            created_at       TEXT
+            nationality       TEXT,
+            address           TEXT,
+            blood_group       TEXT,
+            email             TEXT UNIQUE,
+            password          TEXT,
+            created_at        TEXT
         )
         """)
 
         # ── Trips ─────────────────────────────────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS trips(
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            id              SERIAL PRIMARY KEY,
             user_email      TEXT    NOT NULL,
             title           TEXT    NOT NULL,
             destination     TEXT    NOT NULL,
@@ -59,7 +71,7 @@ def init_db():
         # ── Itinerary days ────────────────────────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS itinerary_days(
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            id          SERIAL PRIMARY KEY,
             trip_id     INTEGER NOT NULL,
             day_number  INTEGER,
             date        TEXT,
@@ -72,11 +84,9 @@ def init_db():
         # ── Login attempts (for rate limiting) ────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS login_attempts(
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            id           SERIAL PRIMARY KEY,
             email        TEXT    NOT NULL,
             attempted_at TEXT    NOT NULL,
-            success      INTEGER DEFAULT 0   -- 0=failed, 1=success
+            success      INTEGER DEFAULT 0
         )
         """)
-
-        conn.commit()

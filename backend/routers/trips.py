@@ -1,5 +1,6 @@
 """
 routers/trips.py  –  Trip CRUD (create, read, update, delete).
+Updated for PostgreSQL — uses %s instead of ?
 """
 
 from datetime import datetime
@@ -36,7 +37,7 @@ def get_trips(email: str = Query(...)):
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM trips WHERE user_email=? ORDER BY created_at DESC",
+                "SELECT * FROM trips WHERE user_email=%s ORDER BY created_at DESC",
                 (email,)
             )
             rows = cursor.fetchall()
@@ -57,7 +58,8 @@ def create_trip(data: dict):
             INSERT INTO trips(
                 user_email, title, destination, start_date, end_date,
                 purpose, travelers_count, budget_inr, notes, status, created_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            RETURNING id
             """, (
                 email,
                 data.get("title"),
@@ -71,8 +73,7 @@ def create_trip(data: dict):
                 "upcoming",
                 datetime.now().isoformat(),
             ))
-            trip_id = cursor.lastrowid
-            conn.commit()
+            trip_id = cursor.fetchone()[0]  # PostgreSQL uses RETURNING id
         return {"status": "success", "id": trip_id, "message": "Trip created"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -84,7 +85,7 @@ def get_trip(trip_id: int, email: str = Query(...)):
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM trips WHERE id=? AND user_email=?",
+                "SELECT * FROM trips WHERE id=%s AND user_email=%s",
                 (trip_id, email)
             )
             row = cursor.fetchone()
@@ -105,9 +106,9 @@ def update_trip(trip_id: int, data: dict):
             cursor = conn.cursor()
             cursor.execute("""
             UPDATE trips
-            SET title=?, destination=?, start_date=?, end_date=?,
-                purpose=?, travelers_count=?, budget_inr=?, notes=?, status=?
-            WHERE id=? AND user_email=?
+            SET title=%s, destination=%s, start_date=%s, end_date=%s,
+                purpose=%s, travelers_count=%s, budget_inr=%s, notes=%s, status=%s
+            WHERE id=%s AND user_email=%s
             """, (
                 data.get("title"),
                 data.get("destination"),
@@ -121,7 +122,6 @@ def update_trip(trip_id: int, data: dict):
                 trip_id,
                 email,
             ))
-            conn.commit()
         return {"status": "success", "message": "Trip updated"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -133,10 +133,9 @@ def delete_trip(trip_id: int, email: str = Query(...)):
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM trips WHERE id=? AND user_email=?",
+                "DELETE FROM trips WHERE id=%s AND user_email=%s",
                 (trip_id, email)
             )
-            conn.commit()
         return {"status": "success", "message": "Trip deleted"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
