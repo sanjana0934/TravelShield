@@ -1,19 +1,21 @@
 """
-core/database.py  –  PostgreSQL connection and table initialisation.
-Uses psycopg2 to connect to Supabase PostgreSQL.
+core/database.py  –  SQLite connection and table initialisation (localhost).
+Uses sqlite3 for local development.
 Call `init_db()` once on app startup.
 """
 
-import psycopg2
-import psycopg2.extras
+import sqlite3
 from contextlib import contextmanager
-from core.config import DATABASE_URL
+
+DATABASE_PATH = "database.db"
 
 
 @contextmanager
 def get_db():
-    """Return a PostgreSQL connection as a context manager."""
-    conn = psycopg2.connect(DATABASE_URL)
+    """Return a SQLite connection as a context manager."""
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row  # lets you access columns by name
+    conn.execute("PRAGMA foreign_keys = ON")  # enforce foreign keys
     try:
         yield conn
         conn.commit()
@@ -32,7 +34,7 @@ def init_db():
         # ── Users ─────────────────────────────────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS users(
-            id                SERIAL PRIMARY KEY,
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name        TEXT,
             middle_name       TEXT,
             last_name         TEXT,
@@ -52,7 +54,7 @@ def init_db():
         # ── Trips ─────────────────────────────────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS trips(
-            id              SERIAL PRIMARY KEY,
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
             user_email      TEXT    NOT NULL,
             title           TEXT    NOT NULL,
             destination     TEXT    NOT NULL,
@@ -71,7 +73,7 @@ def init_db():
         # ── Itinerary days ────────────────────────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS itinerary_days(
-            id          SERIAL PRIMARY KEY,
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
             trip_id     INTEGER NOT NULL,
             day_number  INTEGER,
             date        TEXT,
@@ -84,7 +86,7 @@ def init_db():
         # ── Login attempts (for rate limiting) ────────────────────────────────
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS login_attempts(
-            id           SERIAL PRIMARY KEY,
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
             email        TEXT    NOT NULL,
             attempted_at TEXT    NOT NULL,
             success      INTEGER DEFAULT 0

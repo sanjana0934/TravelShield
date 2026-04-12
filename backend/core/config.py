@@ -28,9 +28,4 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ── Database ──────────────────────────────────────────────────────────────────
-# PostgreSQL connection string from Supabase
-# Format: postgresql://postgres:PASSWORD@db.xxxx.supabase.co:5432/postgres
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set!")
+# Using SQLite for local development (no DATABASE_URL needed)
